@@ -41,6 +41,7 @@ HarvesterAgent = {
         self.holding_crops = False
         self.crop_units = 0
         self.crop_type = 0 # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
+        self.crop_state = ""
 }
 ```
 

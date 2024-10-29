@@ -142,7 +142,7 @@ class AgriEnv(ParallelEnv):
                 action = actions[agent]
                 print(f"{agent}'s action: {self.harvester_agent.actions[action]}")
                 self.step_harvester_agent(self.harvester_agent.actions[action])
-                # self.harvester_agent.display_state()
+                self.harvester_agent.display_state()
 
         self.grow_plot_grids()
         print(self.plot_states)
@@ -195,11 +195,18 @@ class AgriEnv(ParallelEnv):
         
         self.plot_states = {}
         for plot_grid in self.plot_grids:
+            # self.plot_states[tuple([plot_grid[1],plot_grid[0]])] = {
+            #     "planted": False,
+            #     "crop_type": 0,
+            #     "crop_state": "",
+            #     "days": 0,
+            #     "disease": False
+            # }
             self.plot_states[tuple([plot_grid[1],plot_grid[0]])] = {
-                "planted": False,
-                "crop_type": 0,
-                "crop_state": "",
-                "days": 0,
+                "planted": True,
+                "crop_type": 2,
+                "crop_state": "harvest",
+                "days": 25,
                 "disease": False
             }
 
@@ -364,33 +371,26 @@ class AgriEnv(ParallelEnv):
         facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
 
         if self.harvester_agent.holding_crops:
-            # if self.is_market(facing_cell):
-            #     crop_rates = [10, 20, 30]
-            #     drop_rate = [1, 0.8, 0.5]
-            #     if self.harvester_agent.crop_state == "harvest":
-            #         drop_rate = 1
-            #     elif self.harvester_agent.crop_state == "harvest":
-            #     self.game_score += self.harvester_agent.crop_units*crop_rates[self.harvester_agent.crop_type-1]
-            #     self.harvester_agent.holding_crops = False
-            #     self.harvester_agent
-            
-            # # Moving the crops to the harvester
-            # self.harvester_agent.holding_crops = True
-            # self.harvester_agent.crop_type = self.plot_states[facing_cell]['crop_type']
-            # if self.plot_states[facing_cell]['crop_type'] == 1:
-            #     self.harvester_agent.crop_units = 5
-            # elif self.plot_states[facing_cell]['crop_type'] == 2:
-            #     self.harvester_agent.crop_units =  10
-            # elif self.plot_states[facing_cell]['crop_type'] == 3:
-            #     self.harvester_agent.crop_units =  15
-            # self.harvester_agent.crop_state = self.plot_states[facing_cell]['crop_state']
+            if self.is_market(facing_cell):
+                crop_rates = [10, 20, 30]
+                crop_value = 0
+                if self.harvester_agent.crop_state == "harvest":
+                    crop_value = 1
+                elif self.harvester_agent.crop_state == "dried":
+                    crop_value = 0.7
+                elif self.harvester_agent.crop_state == "sapling":
+                    crop_value = 0.2
 
-            # # Clear the plot
-            # self.plot_states[facing_cell]['crop_type'] = 0
-            # self.plot_states[facing_cell]['crop_state'] = ""
-            # self.plot_states[facing_cell]['planted'] = False
-            # self.plot_states[facing_cell]['days'] = 0
-            # self.plot_states[facing_cell]['disease'] = False
+                # Calculate game score by multiplying crop_units*crop_rates*crop_value
+                print(f"Market: Units = {self.harvester_agent.crop_units}, crop_rates = {crop_rates[self.harvester_agent.crop_type-1]},crop_value = {crop_value}")
+                self.game_score += self.harvester_agent.crop_units*crop_rates[self.harvester_agent.crop_type-1]*crop_value
+
+                # Clear the harvester agent
+                self.harvester_agent.holding_crops = False
+                self.harvester_agent.crop_state = ""
+                self.harvester_agent.crop_units = 0
+                self.harvester_agent.crop_type = 0
+
             return True
         return False
 
@@ -592,6 +592,9 @@ class AgriEnv(ParallelEnv):
         font = pygame.font.Font(None, 36)
         text = font.render(f'Day: {self.current_day}', True, BLACK)
         self.screen.blit(text, (10, 10))
+
+        text2 = font.render(f'Game Score: {self.game_score}', True, BLACK)
+        self.screen.blit(text2, (300, 10))
 
         pygame.display.update()
 
