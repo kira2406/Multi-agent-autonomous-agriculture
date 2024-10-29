@@ -8,7 +8,6 @@ class WaterAgent:
         self.facing = 2 # 0 - Up, 1 - Right, 2 - Down, 3 - Left
         self.holding_water = False
         self.water_units = 0
-        self.img = ""
         self.capacity = 4
 
     def rotate_clock(self):

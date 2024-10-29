@@ -11,7 +11,6 @@ class SeederAgent:
         self.holding_seeds = False
         self.seeds = 0
         self.seed_type = 0 # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
-        self.img = ""
         self.capacity = 4
 
     def rotate_clock(self):

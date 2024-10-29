@@ -66,6 +66,8 @@ class AgriEnv(ParallelEnv):
         self.grid[0][7] = 'market'
         self.grid[0][8] = 'market'
 
+        self.market_grids = [[0,5],[0,6],[0,7],[0,8]]
+
         # Place two groups of 2x6 plots
         self.plot_grids = [[3, 1],[4,1],[3,2],[4,2],[3,3],[4,3], [3, 5],[4,5],[3,6],[4,6],[3,7],[4,7]]
         for plot_grid in self.plot_grids:  # Rows 2 and 3
@@ -85,6 +87,8 @@ class AgriEnv(ParallelEnv):
         
         
         self.current_day = 0
+
+        self.game_score = 0
 
         self.done = False
 
@@ -150,7 +154,12 @@ class AgriEnv(ParallelEnv):
 
         return np.array(self.seeder_agent.pos), reward['total_reward'], self.done, {}
     
-    
+    def is_market(self, position):
+
+        if [position[1], position[0]] in self.market_grids:
+            return True
+        return False
+
     def is_seed_station_1(self, position):
         """ Checks if the given grid cell is seed station 1"""
         if [position[1], position[0]] == self.seed_station_1:
@@ -321,7 +330,69 @@ class AgriEnv(ParallelEnv):
             self.seeder_agent.reduce_seeds()
             return True
         return False
+    
+    def harvest_crops(self):
+        """ Function to harvest crops from the plot grids based on the plot which the agent is facing """
+        
+        facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
 
+        if not self.harvester_agent.holding_crops and self.is_plot_grid(facing_cell) and self.plot_states[facing_cell]['planted']:
+            
+            # Moving the crops to the harvester
+            self.harvester_agent.holding_crops = True
+            self.harvester_agent.crop_type = self.plot_states[facing_cell]['crop_type']
+            if self.plot_states[facing_cell]['crop_type'] == 1:
+                self.harvester_agent.crop_units = 5
+            elif self.plot_states[facing_cell]['crop_type'] == 2:
+                self.harvester_agent.crop_units =  10
+            elif self.plot_states[facing_cell]['crop_type'] == 3:
+                self.harvester_agent.crop_units =  15
+            self.harvester_agent.crop_state = self.plot_states[facing_cell]['crop_state']
+
+            # Clear the plot
+            self.plot_states[facing_cell]['crop_type'] = 0
+            self.plot_states[facing_cell]['crop_state'] = ""
+            self.plot_states[facing_cell]['planted'] = False
+            self.plot_states[facing_cell]['days'] = 0
+            self.plot_states[facing_cell]['disease'] = False
+            return True
+        return False
+
+    def drop_crops(self):
+        """ Function to drop crops currently held by the harvester agent """
+        
+        facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
+
+        if self.harvester_agent.holding_crops:
+            # if self.is_market(facing_cell):
+            #     crop_rates = [10, 20, 30]
+            #     drop_rate = [1, 0.8, 0.5]
+            #     if self.harvester_agent.crop_state == "harvest":
+            #         drop_rate = 1
+            #     elif self.harvester_agent.crop_state == "harvest":
+            #     self.game_score += self.harvester_agent.crop_units*crop_rates[self.harvester_agent.crop_type-1]
+            #     self.harvester_agent.holding_crops = False
+            #     self.harvester_agent
+            
+            # # Moving the crops to the harvester
+            # self.harvester_agent.holding_crops = True
+            # self.harvester_agent.crop_type = self.plot_states[facing_cell]['crop_type']
+            # if self.plot_states[facing_cell]['crop_type'] == 1:
+            #     self.harvester_agent.crop_units = 5
+            # elif self.plot_states[facing_cell]['crop_type'] == 2:
+            #     self.harvester_agent.crop_units =  10
+            # elif self.plot_states[facing_cell]['crop_type'] == 3:
+            #     self.harvester_agent.crop_units =  15
+            # self.harvester_agent.crop_state = self.plot_states[facing_cell]['crop_state']
+
+            # # Clear the plot
+            # self.plot_states[facing_cell]['crop_type'] = 0
+            # self.plot_states[facing_cell]['crop_state'] = ""
+            # self.plot_states[facing_cell]['planted'] = False
+            # self.plot_states[facing_cell]['days'] = 0
+            # self.plot_states[facing_cell]['disease'] = False
+            return True
+        return False
 
 
     
@@ -464,15 +535,12 @@ class AgriEnv(ParallelEnv):
         elif action == harvester_agent_actions[6]: # rotate_anticlockwise
             print(harvester_agent_actions[6])
             self.harvester_agent.rotate_anticlock()
-        elif action == harvester_agent_actions[7]: # collect_water
+        elif action == harvester_agent_actions[7]: # harvest_crops
             print(harvester_agent_actions[7])
-            print(self.pickup_water())
-        elif action == harvester_agent_actions[8]: # water_crops
+            print(self.harvest_crops())
+        elif action == harvester_agent_actions[8]: # drop_crops
             print(harvester_agent_actions[8])
-            print(self.get_facing_cell(self.harvester_agent))
-        elif action == harvester_agent_actions[9]: # drop_water
-            print(harvester_agent_actions[9])
-            print(self.get_facing_cell(self.harvester_agent))
+            print(self.drop_crops())
 
 
     def render(self):

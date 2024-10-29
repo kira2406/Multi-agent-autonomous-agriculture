@@ -4,15 +4,14 @@ from gymnasium import spaces
 class HarvesterAgent:
     def __init__(self, pos):
         # self.actions = ['move_up', 'move_down', 'move_left', 'move_right', 'face_up', 'face_down', 'face_left', 'face_right', 'idle', 'collect_seeds', 'plant_seed', 'drop_seeds']
-        self.actions = ['move_up', 'move_down', 'move_left', 'move_right', 'idle', 'rotate_clockwise', 'rotate_anticlockwise', 'harvest', 'drop_crops']
+        self.actions = ['move_up', 'move_down', 'move_left', 'move_right', 'idle', 'rotate_clockwise', 'rotate_anticlockwise', 'harvest_crops', 'drop_crops']
         self.action_space = spaces.Discrete(8)
         self.pos = pos
         self.facing = 2 # 0 - Up, 1 - Right, 2 - Down, 3 - Left
         self.holding_crops = False
         self.crop_units = 0
         self.crop_type = 0 # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
-        self.img = ""
-        self.capacity = 2
+        self.crop_state = ""
 
     def rotate_clock(self):
         self.facing = (self.facing+1)%4
