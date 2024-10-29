@@ -152,31 +152,37 @@ class AgriEnv(ParallelEnv):
     
     
     def is_seed_station_1(self, position):
+        """ Checks if the given grid cell is seed station 1"""
         if [position[1], position[0]] == self.seed_station_1:
             return True
         return False
         
     def is_seed_station_2(self, position):
+        """ Checks if the given grid cell is seed station 2"""
         if [position[1], position[0]] == self.seed_station_2:
             return True
         return False
     
     def is_seed_station_3(self, position):
+        """ Checks if the given grid cell is seed station 3"""
         if [position[1], position[0]] == self.seed_station_3:
             return True
         return False
         
     def is_water_tank(self, position):
+        """ Checks if the given grid cell is a water tank"""
         if [position[1], position[0]] == self.water_tank:
             return True
         return False
     
     def is_obstacle(self, position):
+        """ Checks if the given grid cell has an obstacle"""
         if self.is_seed_station_1(position) or self.is_seed_station_2(position) or self.is_seed_station_3(position) or self.is_water_tank(position):
             return True
         return False
     
     def initialize_plots(self):
+        """ Initialize the plot grids to initial state"""
         
         self.plot_states = {}
         for plot_grid in self.plot_grids:
@@ -189,12 +195,14 @@ class AgriEnv(ParallelEnv):
             }
 
     def is_plot_grid(self, position):
+        """ Checks if the given grid cell is a plot grid or not """
         if [position[1], position[0]] in self.plot_grids:
             return True
         return False
 
     
     def is_within_bounds(self, position):
+        """ Check if the agent is within the grid bounds """
         if self.is_plot_grid(position) or self.is_obstacle(position):
             return False
         if position[0] < GRID_WIDTH and position[0] >= 0 and position[1] >= 0 and position[1] < GRID_HEIGHT:
@@ -203,6 +211,7 @@ class AgriEnv(ParallelEnv):
             return False
     
     def movement(self, agent, direction):
+        """ Function to move the agent. Directions - Up, Down, Left, Right"""
         pos_x, pos_y = agent.pos[0], agent.pos[1]
         if direction == "move_up":
             next_pos = [pos_x, pos_y-1]
@@ -230,7 +239,9 @@ class AgriEnv(ParallelEnv):
                 return True
         return False
 
+    
     def get_facing_cell(self, agent):
+        """ Get the cell the agent is currently facing"""
         position = agent.pos
         pos_x, pos_y = position[0], position[1]
         if agent.facing == 0:
@@ -243,6 +254,7 @@ class AgriEnv(ParallelEnv):
             return [pos_x-1, pos_y]
         
     def pickup_seeds(self):
+        """ Pickup seeds from the seed stations if the agent is facing the seed station """
         if self.seeder_agent.holding_seeds:
             return False
         facing_cell = self.get_facing_cell(self.seeder_agent)
@@ -262,6 +274,7 @@ class AgriEnv(ParallelEnv):
         return False
     
     def drop_seeds(self):
+        """ Drop seeds back into the seed station """
         if not self.seeder_agent.holding_seeds:
             return False
         facing_cell = self.get_facing_cell(self.seeder_agent)
@@ -280,7 +293,7 @@ class AgriEnv(ParallelEnv):
         return False
     
     def grow_plot_grids(self):
-
+        """ Function to update the state of crops in plot grids after every step """
         for plot_grid in self.plot_grids:
             plot_grid_key = tuple([plot_grid[1],plot_grid[0]])
             if self.plot_states[plot_grid_key]['planted']:
@@ -297,14 +310,7 @@ class AgriEnv(ParallelEnv):
                 self.plot_states[plot_grid_key]['days'] = plant_days + 1
     
     def plant_seeds(self):
-
-        # {
-        #         "planted": False,
-        #         "crop_type": 0,
-        #         "crop_state": "",
-        #         "days": 0,
-        #         "disease": False
-        #     }
+        """ Function to plant seeds into the plot grids based on the plot which the agent is facing """
         
         facing_cell = tuple(self.get_facing_cell(self.seeder_agent))
 
@@ -320,6 +326,7 @@ class AgriEnv(ParallelEnv):
 
     
     def pickup_water(self):
+        """ Pickup water_units of water from the water tank"""
         facing_cell = self.get_facing_cell(self.water_agent)
 
         if self.is_water_tank(facing_cell):
@@ -332,6 +339,7 @@ class AgriEnv(ParallelEnv):
 
     
     def step_seeder_agent(self, action):
+        """ Function defines the set of actions executed by the seeder_agent """
         seeder_agent_actions = self.seeder_agent.actions
 
         if action == seeder_agent_actions[0]: # move_up
@@ -377,6 +385,7 @@ class AgriEnv(ParallelEnv):
                 reward = -10
 
     def step_water_agent(self, action):
+        """ Function defines the set of actions executed by the water_agent """
 
         water_agent_actions = self.water_agent.actions
         
@@ -419,6 +428,7 @@ class AgriEnv(ParallelEnv):
 
 
     def step_harvester_agent(self, action):
+        """ Function defines the set of actions executed by the harvester_agent """
 
         harvester_agent_actions = self.harvester_agent.actions
         
