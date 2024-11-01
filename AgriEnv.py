@@ -7,7 +7,7 @@ from Agents.SeederAgent import SeederAgent
 from Agents.WaterAgent import WaterAgent
 from Agents.HarvesterAgent import HarvesterAgent
 from pettingzoo.utils import ParallelEnv
-from constants import CropStages, CropTypes, CropGrowthRates, CropInfo
+from constants import CropStages, CropTypes, CropGrowthRates, CropInfo, GridElements
 
 
 # Screen dimensions
@@ -38,7 +38,12 @@ class AgriEnv(ParallelEnv):
         super(AgriEnv, self).__init__()
 
         self.agents = ['seeder_agent', 'water_agent', 'harvester_agent']
+
         
+        self.grid_state = np.zeros(8 * 9, dtype=int)
+        self.num_columns = 9
+        self.num_rows = 8
+
         self.initialize_environment()
 
         self.action_space = {
@@ -55,7 +60,36 @@ class AgriEnv(ParallelEnv):
         self.grid = [['grass' for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]  # Initial grass grid
         
         
+        
         # Place start and market
+        self.grid_state[0] = GridElements.START
+        self.grid_state[1] = GridElements.START
+        self.grid_state[2] = GridElements.START
+        self.grid_state[3] = GridElements.START
+        self.grid_state[5] = GridElements.MARKET
+        self.grid_state[6] = GridElements.MARKET
+        self.grid_state[7] = GridElements.MARKET
+        self.grid_state[8] = GridElements.MARKET
+
+        self.grid_state[28] = GridElements.PLOT
+        self.grid_state[29] = GridElements.PLOT
+        self.grid_state[30] = GridElements.PLOT
+        self.grid_state[32] = GridElements.PLOT
+        self.grid_state[33] = GridElements.PLOT
+        self.grid_state[34] = GridElements.PLOT
+
+        self.grid_state[37] = GridElements.PLOT
+        self.grid_state[38] = GridElements.PLOT
+        self.grid_state[39] = GridElements.PLOT
+        self.grid_state[41] = GridElements.PLOT
+        self.grid_state[42] = GridElements.PLOT
+        self.grid_state[43] = GridElements.PLOT
+
+        self.grid_state[64] = GridElements.SEEDSTN1
+        self.grid_state[66] = GridElements.SEEDSTN2
+        self.grid_state[68] = GridElements.SEEDSTN3
+        self.grid_state[70] = GridElements.WATERTANK
+
 
         self.grid[0][0] = 'start'
         self.grid[0][1] = 'start'
@@ -93,12 +127,10 @@ class AgriEnv(ParallelEnv):
 
         self.done = False
 
-        
-
     def initialize_environment(self):
-        self.seeder_agent = SeederAgent([0, 0])
-        self.water_agent = WaterAgent([1, 0])
-        self.harvester_agent = HarvesterAgent([2, 0])
+        self.seeder_agent = SeederAgent(0)
+        self.water_agent = WaterAgent(1)
+        self.harvester_agent = HarvesterAgent(2)
 
         # Initialize Pygame and set up the screen
         pygame.init()
@@ -161,33 +193,33 @@ class AgriEnv(ParallelEnv):
             return True
         return False
 
-    def is_seed_station_1(self, position):
+    def is_seed_station_1(self, pos):
         """ Checks if the given grid cell is seed station 1"""
-        if [position[1], position[0]] == self.seed_station_1:
+        if self.grid_state[pos] == GridElements.SEEDSTN1:
             return True
         return False
         
-    def is_seed_station_2(self, position):
+    def is_seed_station_2(self, pos):
         """ Checks if the given grid cell is seed station 2"""
-        if [position[1], position[0]] == self.seed_station_2:
+        if self.grid_state[pos] == GridElements.SEEDSTN2:
             return True
         return False
     
-    def is_seed_station_3(self, position):
+    def is_seed_station_3(self, pos):
         """ Checks if the given grid cell is seed station 3"""
-        if [position[1], position[0]] == self.seed_station_3:
+        if self.grid_state[pos] == GridElements.SEEDSTN3:
             return True
         return False
         
-    def is_water_tank(self, position):
+    def is_water_tank(self, pos):
         """ Checks if the given grid cell is a water tank"""
-        if [position[1], position[0]] == self.water_tank:
+        if self.grid_state[pos] == GridElements.WATERTANK:
             return True
         return False
     
-    def is_obstacle(self, position):
+    def is_obstacle(self, pos):
         """ Checks if the given grid cell has an obstacle"""
-        if self.is_seed_station_1(position) or self.is_seed_station_2(position) or self.is_seed_station_3(position) or self.is_water_tank(position):
+        if self.is_seed_station_1(pos) or self.is_seed_station_2(pos) or self.is_seed_station_3(pos) or self.is_water_tank(pos):
             return True
         return False
     
@@ -208,48 +240,80 @@ class AgriEnv(ParallelEnv):
                 0     # yield value
                 ])
 
-    def is_plot_grid(self, position):
+    def is_plot_grid(self, pos):
         """ Checks if the given grid cell is a plot grid or not """
-        if [position[1], position[0]] in self.plot_grids:
+        if self.grid_state[pos] == GridElements.PLOT:
             return True
         return False
 
     
-    def is_within_bounds(self, position):
+    def is_within_bounds(self, pos):
         """ Check if the agent is within the grid bounds """
-        if self.is_plot_grid(position) or self.is_obstacle(position):
+        if pos < 0 and pos >= GRID_WIDTH*GRID_HEIGHT:
             return False
-        if position[0] < GRID_WIDTH and position[0] >= 0 and position[1] >= 0 and position[1] < GRID_HEIGHT:
-            return True
-        else:
+        
+        if self.is_plot_grid(pos) or self.is_obstacle(pos):
             return False
+        
+        if pos == self.seeder_agent.get_position() or pos == self.harvester_agent.get_position() or pos == self.water_agent.get_position():
+            return False
+        
+        return True
     
     def movement(self, agent, direction):
         """ Function to move the agent. Directions - Up, Down, Left, Right"""
-        pos_x, pos_y = agent.pos[0], agent.pos[1]
+        curr_grid = agent.get_position()
+        next_pos = curr_grid
+
         if direction == "move_up":
-            next_pos = [pos_x, pos_y-1]
+            if curr_grid < self.num_columns:
+                return False
+            next_pos = curr_grid-self.num_columns
+        elif direction == "move_down":
+            if curr_grid >= (GRID_HEIGHT - 1) * self.num_columns:
+                return False
+            next_pos = curr_grid+self.num_columns
+        elif direction == "move_left":
+            # check if agent is in first column
+            if curr_grid % self.num_columns == 0:
+                return False
+            next_pos = curr_grid - 1
+        elif direction == "move_right":
+            if (curr_grid+1) % self.num_columns == 0:
+                return False
+            next_pos = curr_grid + 1
+
+        if self.is_within_bounds(next_pos):
+            agent.update_position(next_pos)
+            agent.update_facing({"move_up": 0, "move_right": 1, "move_down": 2, "move_left": 3}[direction])
+            return True
+        
+        return False
+
+
+        if direction == "move_up":
+            next_pos = curr_grid-self.num_columns
             if self.is_within_bounds(next_pos):
-                agent.update_pos(next_pos)
-                agent.update_dir(0)
+                agent.update_position(next_pos)
+                agent.update_facing(0)
                 return True
         elif direction == "move_down":
-            next_pos = [pos_x, pos_y+1]
+            next_pos = curr_grid+self.num_columns
             if self.is_within_bounds(next_pos):
-                agent.update_pos(next_pos)
-                agent.update_dir(2)
+                agent.update_position(next_pos)
+                agent.update_facing(2)
                 return True
         elif direction == "move_left":
-            next_pos = [pos_x-1, pos_y]
+            next_pos = curr_grid - 1
             if self.is_within_bounds(next_pos):
-                agent.update_pos(next_pos)
-                agent.update_dir(3)
+                agent.update_position(next_pos)
+                agent.update_facing(3)
                 return True
         elif direction == "move_right":
-            next_pos = [pos_x+1, pos_y]
+            next_pos = curr_grid + 1
             if self.is_within_bounds(next_pos):
-                agent.update_pos(next_pos)
-                agent.update_dir(1)
+                agent.update_position(next_pos)
+                agent.update_facing(1)
                 return True
         return False
 
@@ -540,6 +604,12 @@ class AgriEnv(ParallelEnv):
             print(self.drop_crops())
 
 
+    def get_coordinates(self, position):
+        """Convert a 1D position index back to (row, col)."""
+        row = position // self.num_columns
+        col = position % self.num_columns
+        return row, col
+    
     def render(self):
 
         for event in pygame.event.get():
@@ -571,18 +641,18 @@ class AgriEnv(ParallelEnv):
                     self.screen.blit(GRASS_IMG, (x, y))
 
         # Draw agent (for simplicity, representing as a black square)
-        water_agent_pos = self.water_agent.pos  # Assume the position is stored here
-        water_agent_x, water_agent_y = water_agent_pos[0] * TILE_SIZE, water_agent_pos[1] * TILE_SIZE
+        water_agent_pos = self.get_coordinates(self.water_agent.get_position())  # Assume the position is stored here
+        water_agent_x, water_agent_y = water_agent_pos[1] * TILE_SIZE, water_agent_pos[0] * TILE_SIZE
         # print("wateragent", self.water_agent.pos,self.water_agent.pos[0], self.water_agent.pos[1], water_agent_x, water_agent_y)
         self.screen.blit(WATER_AGENT_IMG, ( water_agent_x,  water_agent_y))
 
-        seeder_agent_pos = self.seeder_agent.pos  # Assume the position is stored here
-        seeder_agent_x, seeder_agent_y = seeder_agent_pos[0] * TILE_SIZE, seeder_agent_pos[1] * TILE_SIZE
+        seeder_agent_pos = self.get_coordinates(self.seeder_agent.get_position())  # Assume the position is stored here
+        seeder_agent_x, seeder_agent_y = seeder_agent_pos[1] * TILE_SIZE, seeder_agent_pos[0] * TILE_SIZE
         # print("seederagent", self.seeder_agent.pos,seeder_agent_pos[0],seeder_agent_pos[0], seeder_agent_x, seeder_agent_y)
         self.screen.blit(SEEDER_AGENT_IMG, ( seeder_agent_x,  seeder_agent_y))
 
-        harvester_agent_pos = self.harvester_agent.pos  # Assume the position is stored here
-        harvester_agent_x, harvester_agent_y = harvester_agent_pos[0] * TILE_SIZE, harvester_agent_pos[1] * TILE_SIZE
+        harvester_agent_pos = self.get_coordinates(self.harvester_agent.get_position())  # Assume the position is stored here
+        harvester_agent_x, harvester_agent_y = harvester_agent_pos[1] * TILE_SIZE, harvester_agent_pos[0] * TILE_SIZE
         # print("harvester_agent", self.harvester_agent.pos,harvester_agent_pos[0],harvester_agent_pos[0], harvester_agent_x, harvester_agent_y)
         self.screen.blit(HARVESTER_AGENT_IMG, ( harvester_agent_x,  harvester_agent_y))
 

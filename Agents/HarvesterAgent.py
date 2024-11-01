@@ -13,16 +13,30 @@ class HarvesterAgent:
         self.crop_units = 0
         self.crop_type = CropTypes.EMPTY # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
         self.yield_value = 0
-        self.state = []
+
+        """
+        0: position of agent
+        1: facing direction
+        2: number of crop units holding
+        3: type of crop carrying
+        4: yield value of crops
+        """
+        self.state = [pos, 0, 0, 0, 0]
+
+    def get_position(self):
+        return self.state[0]
+    
+    def update_position(self, new_pos):
+        self.state[0] = new_pos
+
+    def update_facing(self, direction):
+        self.state[1] = direction
 
     def rotate_clock(self):
         self.facing = (self.facing+1)%4
 
     def rotate_anticlock(self):
         self.facing = (self.facing-1)%4
-
-    def update_pos(self, pos):
-        self.pos = pos
 
     def harvest(self, seed_type, seed_quantity):
         self.seed_type = seed_type
@@ -38,9 +52,6 @@ class HarvesterAgent:
         self.crop_units = 0
         self.crop_type = 0
         return dropped_crops
-
-    def update_dir(self, direc):
-        self.facing = direc
 
     def display_state(self):
         directions = ['Up', 'Right', 'Down', 'Left']

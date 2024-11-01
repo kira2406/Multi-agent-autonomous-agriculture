@@ -14,14 +14,29 @@ class SeederAgent:
         self.seed_type = CropTypes.EMPTY # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
         self.capacity = 4
 
+        """
+        0: position of agent
+        1: facing direction
+        2: number of seeds holding
+        3: sed type
+        """
+        self.state = [pos, 0, 0, 0]
+
+
+    def get_position(self):
+        return self.state[0]
+    
+    def update_position(self, new_pos):
+        self.state[0] = new_pos
+
+    def update_facing(self, direc):
+        self.state[1] = direc
+
     def rotate_clock(self):
         self.facing = (self.facing+1)%4
 
     def rotate_anticlock(self):
         self.facing = (self.facing-1)%4
-
-    def update_pos(self, pos):
-        self.pos = pos
 
     def reduce_seeds(self):
         if self.seeds == 1:
@@ -40,17 +55,9 @@ class SeederAgent:
         self.seeds = min(seed_quantity, self.capacity)
         self.holding_seeds = True
 
-    def update_dir(self, direc):
-        self.facing = direc
-
     def display_state(self):
-        directions = ['Up', 'Right', 'Down', 'Left']
         print("====Seeder Agent====")
-        print(f"Position: {self.pos}")
-        print(f"Facing: {directions[self.facing]}")
-        print(f"Holding Seeds: {self.holding_seeds}")
-        print(f"Seeds: {self.seeds}")
-        print(f"Seed Type: {self.seed_type}")
+        print(self.state)
 
     # def execute_action(self, action):
     #     if action = 

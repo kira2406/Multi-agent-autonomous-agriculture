@@ -26,3 +26,16 @@ class CropInfo:
     @staticmethod
     def get_growth_rate(crop_type):
         return CropInfo.growth_rates.get(crop_type, 0)
+    
+class GridElements:
+    GRASS = 0
+    START = 1
+    PLOT = 2
+    SEEDSTN1 = 3
+    SEEDSTN2 = 4
+    SEEDSTN3 = 5
+    WATERTANK = 6
+    SEEDERAGENT = 7
+    WATERAGENT = 8
+    HARVESTERAGENT = 9
+    MARKET = 10
