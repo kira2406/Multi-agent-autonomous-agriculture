@@ -17,6 +17,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE
 
 START_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/start.png'), (TILE_SIZE, TILE_SIZE))
 MARKET_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/market.png'), (TILE_SIZE, TILE_SIZE))
+GARBAGE_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/garbage.png'), (TILE_SIZE, TILE_SIZE))
 PLOT_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/plot.png'), (TILE_SIZE, TILE_SIZE))
 SEEDSTN1_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/crop1.png'), (TILE_SIZE, TILE_SIZE))
 SEEDSTN2_IMG = pygame.transform.scale(pygame.image.load('assets/grid_cells/crop2.png'), (TILE_SIZE, TILE_SIZE))
@@ -37,7 +38,7 @@ class AgriEnv(ParallelEnv):
     def __init__(self):
         super(AgriEnv, self).__init__()
 
-        self.agents = ['seeder_agent', 'water_agent', 'harvester_agent']
+        self.agents = ['seeder_agent', 'harvester_agent']
 
         
         self.grid_state = np.zeros(8 * 9, dtype=int)
@@ -48,8 +49,8 @@ class AgriEnv(ParallelEnv):
 
         self.action_space = {
             self.agents[0]: self.seeder_agent.action_space,
-            self.agents[1]: self.water_agent.action_space,  # Define actions for WaterAgent
-            self.agents[2]: self.harvester_agent.action_space
+            # self.agents[1]: self.water_agent.action_space,  # Define actions for WaterAgent
+            self.agents[1]: self.harvester_agent.action_space
         }
 
         self.current_day = 0
@@ -68,22 +69,22 @@ class AgriEnv(ParallelEnv):
         self.grid_state[3] = GridElements.START
         self.grid_state[5] = GridElements.MARKET
         self.grid_state[6] = GridElements.MARKET
-        self.grid_state[7] = GridElements.MARKET
-        self.grid_state[8] = GridElements.MARKET
+        
+        self.grid_state[8] = GridElements.GARBAGE
 
-        self.grid_state[28] = GridElements.PLOT
+        # self.grid_state[28] = GridElements.PLOT
         self.grid_state[29] = GridElements.PLOT
         self.grid_state[30] = GridElements.PLOT
-        self.grid_state[32] = GridElements.PLOT
-        self.grid_state[33] = GridElements.PLOT
-        self.grid_state[34] = GridElements.PLOT
+        # self.grid_state[32] = GridElements.PLOT
+        # self.grid_state[33] = GridElements.PLOT
+        # self.grid_state[34] = GridElements.PLOT
 
-        self.grid_state[37] = GridElements.PLOT
+        # self.grid_state[37] = GridElements.PLOT
         self.grid_state[38] = GridElements.PLOT
         self.grid_state[39] = GridElements.PLOT
-        self.grid_state[41] = GridElements.PLOT
-        self.grid_state[42] = GridElements.PLOT
-        self.grid_state[43] = GridElements.PLOT
+        # self.grid_state[41] = GridElements.PLOT
+        # self.grid_state[42] = GridElements.PLOT
+        # self.grid_state[43] = GridElements.PLOT
 
         self.grid_state[64] = GridElements.SEEDSTN1
         self.grid_state[66] = GridElements.SEEDSTN2
@@ -98,14 +99,16 @@ class AgriEnv(ParallelEnv):
 
         self.grid[0][5] = 'market'
         self.grid[0][6] = 'market'
-        self.grid[0][7] = 'market'
-        self.grid[0][8] = 'market'
+        
+        self.grid[0][8] = 'garbage'
 
         self.market_grids = [[0,5],[0,6],[0,7],[0,8]]
 
         # Place two groups of 2x6 plots
-        self.plot_grids = [[3, 1],[4,1],[3,2],[4,2],[3,3],[4,3], [3, 5],[4,5],[3,6],[4,6],[3,7],[4,7]]
-        self.plot_grids_indices = [28, 29, 30, 32, 33, 34, 37, 38, 39, 41, 42, 43]
+        # self.plot_grids = [[3, 1],[4,1],[3,2],[4,2],[3,3],[4,3], [3, 5],[4,5],[3,6],[4,6],[3,7],[4,7]]
+        self.plot_grids = [[3,2],[4,2], [3,3],[4,3]]
+        # self.plot_grids_indices = [28, 29, 30, 32, 33, 34, 37, 38, 39, 41, 42, 43]
+        self.plot_grids_indices = [29, 30, 38, 39 ]
         for plot_grid in self.plot_grids:  # Rows 2 and 3
             self.grid[plot_grid[0]][plot_grid[1]] = 'plot'
 
@@ -130,7 +133,7 @@ class AgriEnv(ParallelEnv):
 
     def initialize_environment(self):
         self.seeder_agent = SeederAgent(0)
-        self.water_agent = WaterAgent(1)
+        # self.water_agent = WaterAgent(1)
         self.harvester_agent = HarvesterAgent(2)
 
         # Initialize Pygame and set up the screen
@@ -157,7 +160,7 @@ class AgriEnv(ParallelEnv):
 
         reward = {
             "seeder_agent": -1,
-            "water_agent": -1,
+            # "water_agent": -1,
             "total_reward": -1
         }
 
@@ -188,9 +191,15 @@ class AgriEnv(ParallelEnv):
 
         return np.array(self.seeder_agent.pos), reward['total_reward'], self.done, {}
     
-    def is_market(self, position):
+    def is_market(self, pos):
 
-        if [position[1], position[0]] in self.market_grids:
+        if self.grid_state[pos] == GridElements.MARKET:
+            return True
+        return False
+    
+    def is_garbage(self, pos):
+
+        if self.grid_state[pos] == GridElements.GARBAGE:
             return True
         return False
 
@@ -232,13 +241,13 @@ class AgriEnv(ParallelEnv):
         for index, plot_index in enumerate(self.plot_grids_indices):
             self.plot_dict[plot_index] = index
             self.plot_states.append([
-                CropStages.NOT_PLANTED, # indicates the crop state
-                CropTypes.EMPTY,
+                CropStages.HARVEST, # indicates the crop state
+                CropTypes.RICE, # indicates the type of crops
                 0.0, # indicates water percentage
-                0.0, # indicates growth percentage
+                1.0, # indicates growth percentage
                 0.0, # indicates disease percentage
                 0,    # days since water percentage is 0
-                0     # yield value
+                1     # yield value
                 ])
 
     def is_plot_grid(self, pos):
@@ -256,7 +265,8 @@ class AgriEnv(ParallelEnv):
         if self.is_plot_grid(pos) or self.is_obstacle(pos):
             return False
         
-        if pos == self.seeder_agent.get_position() or pos == self.harvester_agent.get_position() or pos == self.water_agent.get_position():
+        # Check if position is conflicting with other agents' position
+        if pos == self.seeder_agent.get_position() or pos == self.harvester_agent.get_position():
             return False
         
         return True
@@ -379,7 +389,7 @@ class AgriEnv(ParallelEnv):
         """ Function to plant seeds into the plot grids based on the plot which the agent is facing """
         
         facing_cell = self.get_facing_cell(self.seeder_agent)
-        print("facing_cell", facing_cell)
+
         if self.is_plot_grid(facing_cell):
             plot_id = self.plot_dict[facing_cell]
             if self.plot_states[plot_id][0] == CropStages.NOT_PLANTED:
@@ -391,44 +401,59 @@ class AgriEnv(ParallelEnv):
     
     def harvest_crops(self):
         """ Function to harvest crops from the plot grids based on the plot which the agent is facing """
+        if self.harvester_agent.is_holding_crops():
+            return False
         
-        facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
+        facing_cell = self.get_facing_cell(self.harvester_agent)
 
-        if not self.harvester_agent.holding_crops and self.is_plot_grid(facing_cell):
+        if self.is_plot_grid(facing_cell):
             plot_id = self.plot_dict[facing_cell]
 
             if self.plot_states[plot_id][0] != CropStages.NOT_PLANTED:
             
                 # Moving the crops to the harvester
-                self.harvester_agent.holding_crops = True
-                self.harvester_agent.crop_type = self.plot_states[plot_id][1]
-                self.harvester_agent.yield_value = self.plot_states[plot_id][6]
+                _, crop_type, _, _, _, _, crop_value = self.plot_states[plot_id]
+
+                self.harvester_agent.update_crops(crop_type, crop_value)
 
                 # Clear the plot
                 self.plot_states[plot_id] = [0, 0, 0.0, 0.0, 0.0, 0, 0]
                 return True
         return False
 
-    def drop_crops(self):
-        """ Function to drop crops currently held by the harvester agent """
-        
-        facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
+    def drop_crops_market(self):
+        if self.harvester_agent.is_holding_crops():
 
-        if self.harvester_agent.holding_crops:
-            if self.is_market(facing_cell):
-                market_value = [20, 40, 60]
+            # check the value of crops, return False if crop value is 0
+            if self.harvester_agent.get_crops_value() == 0:
+                return False
+            market_value = [20, 40, 60]
+            
+            # Calculate game score by multiplying market_value*yield value
+            print(f"Market: value={market_value[self.harvester_agent.get_crops_type()-1]} yield_value:{self.harvester_agent.get_crops_value()}")
+            self.game_score += market_value[self.harvester_agent.get_crops_type()-1]*self.harvester_agent.get_crops_value()
 
-                # Calculate game score by multiplying market_value*yield value
-                print(f"Market: value={market_value[self.harvester_agent.crop_type-1]} yield_value:{self.harvester_agent.yield_value}")
-                self.game_score += self.harvester_agent.yield_value*market_value[self.harvester_agent.crop_type-1]
-
-                # Clear the harvester agent
-                self.harvester_agent.holding_crops = False
-                self.harvester_agent.crop_type = CropTypes.EMPTY
-                self.harvester_agent.yield_value = 0
-
+            # Clear the harvester agent
+            self.harvester_agent.drop_crops()
             return True
         return False
+
+    def drop_crops_garbage(self):
+        if self.harvester_agent.is_holding_crops():
+            
+            # check the value of crops, return False if crop value is not 0
+            if self.harvester_agent.get_crops_value() != 0:
+                return False
+            
+            print(f"Garbage: yield_value:{self.harvester_agent.get_crops_value()}")
+            # positive reward for throwing dead crops to garbage
+            self.game_score += 3
+
+            self.harvester_agent.drop_crops()
+                
+            return True
+        return False
+    
 
 
     
@@ -576,7 +601,10 @@ class AgriEnv(ParallelEnv):
             print(self.harvest_crops())
         elif action == harvester_agent_actions[8]: # drop_crops
             print(harvester_agent_actions[8])
-            print(self.drop_crops())
+            if self.is_market(self.harvester_agent.get_position()):
+                self.drop_crops_market()
+            elif self.is_garbage(self.harvester_agent.get_position()):
+                self.drop_crops_garbage()
 
 
     def get_coordinates(self, position):
@@ -602,6 +630,8 @@ class AgriEnv(ParallelEnv):
                     self.screen.blit(START_IMG, (x, y))
                 elif tile == 'market':
                     self.screen.blit(MARKET_IMG, (x, y))
+                elif tile == "garbage":
+                    self.screen.blit(GARBAGE_IMG, (x, y))
                 elif tile == 'plot':
                     self.screen.blit(PLOT_IMG, (x, y))
                 elif tile == 'seedStn1':
@@ -616,10 +646,10 @@ class AgriEnv(ParallelEnv):
                     self.screen.blit(GRASS_IMG, (x, y))
 
         # Draw agent (for simplicity, representing as a black square)
-        water_agent_pos = self.get_coordinates(self.water_agent.get_position())  # Assume the position is stored here
-        water_agent_x, water_agent_y = water_agent_pos[1] * TILE_SIZE, water_agent_pos[0] * TILE_SIZE
+        # water_agent_pos = self.get_coordinates(self.water_agent.get_position())  # Assume the position is stored here
+        # water_agent_x, water_agent_y = water_agent_pos[1] * TILE_SIZE, water_agent_pos[0] * TILE_SIZE
         # print("wateragent", self.water_agent.pos,self.water_agent.pos[0], self.water_agent.pos[1], water_agent_x, water_agent_y)
-        self.screen.blit(WATER_AGENT_IMG, ( water_agent_x,  water_agent_y))
+        # self.screen.blit(WATER_AGENT_IMG, ( water_agent_x,  water_agent_y))
 
         seeder_agent_pos = self.get_coordinates(self.seeder_agent.get_position())  # Assume the position is stored here
         seeder_agent_x, seeder_agent_y = seeder_agent_pos[1] * TILE_SIZE, seeder_agent_pos[0] * TILE_SIZE

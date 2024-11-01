@@ -20,6 +20,9 @@ class WaterAgent:
     def get_position(self):
         return self.state[0]
     
+    def get_facing(self):
+        return self.state[1]
+    
     def update_position(self, new_pos):
         self.state[0] = new_pos
 
@@ -27,10 +30,10 @@ class WaterAgent:
         self.state[1] = direc
 
     def rotate_clock(self):
-        self.facing = (self.facing+1)%4
+        self.state[1] = (self.state[1]+1)%4
 
     def rotate_anticlock(self):
-        self.facing = (self.facing-1)%4
+        self.state[1] = (self.state[1]-1)%4
 
     def collect_water(self, water_units):
         self.water_units = min(water_units, self.capacity)

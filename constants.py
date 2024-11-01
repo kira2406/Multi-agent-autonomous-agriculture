@@ -39,3 +39,4 @@ class GridElements:
     WATERAGENT = 8
     HARVESTERAGENT = 9
     MARKET = 10
+    GARBAGE = 11

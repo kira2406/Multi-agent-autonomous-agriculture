@@ -17,14 +17,17 @@ class HarvesterAgent:
         """
         0: position of agent
         1: facing direction
-        2: number of crop units holding
-        3: type of crop carrying
-        4: yield value of crops
+        2: type of crop carrying
+        3: yield value of crops
         """
         self.state = [pos, 0, 0, 0, 0]
 
+
     def get_position(self):
         return self.state[0]
+    
+    def get_facing(self):
+        return self.state[1]
     
     def update_position(self, new_pos):
         self.state[0] = new_pos
@@ -32,11 +35,24 @@ class HarvesterAgent:
     def update_facing(self, direction):
         self.state[1] = direction
 
+    def update_crops(self, crop_type, crop_value):
+        self.state[2] = crop_type
+        self.state[3] = crop_value
+
     def rotate_clock(self):
-        self.facing = (self.facing+1)%4
+        self.state[1] = (self.state[1]+1)%4
 
     def rotate_anticlock(self):
-        self.facing = (self.facing-1)%4
+        self.state[1] = (self.state[1]-1)%4
+    
+    def get_crops_type(self):
+        return self.state[2]
+    
+    def get_crops_value(self):
+        return self.state[3]
+
+    def is_holding_crops(self):
+        return self.state[2] > 0
 
     def harvest(self, seed_type, seed_quantity):
         self.seed_type = seed_type
@@ -44,23 +60,13 @@ class HarvesterAgent:
         self.holding_crops = True
 
     def drop_crops(self):
-        self.holding_crops = False
-        dropped_crops = {
-            "crop_type": self.crop_type,
-            "crop_units": self.crop_units
-        }
-        self.crop_units = 0
-        self.crop_type = 0
-        return dropped_crops
+        self.state[2] = 0
+        self.state[3] = 0.0
 
     def display_state(self):
         directions = ['Up', 'Right', 'Down', 'Left']
         print("====Harvester Agent====")
-        print(f"Position: {self.pos}")
-        print(f"Facing: {directions[self.facing]}")
-        print(f"Holding Seeds: {self.holding_crops}")
-        print(f"Crop units: {self.crop_units}")
-        print(f"Crop Type: {self.crop_type}")
-
-    # def execute_action(self, action):
-    #     if action = 
+        print(f"Position: {self.state[0]}")
+        print(f"Facing: {directions[self.state[1]]}")
+        print(f"Crop Type: {self.state[2]}")
+        print(f"Crop Value: {self.state[3]}")

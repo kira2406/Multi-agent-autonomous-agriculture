@@ -32,7 +32,6 @@ class SeederAgent:
     def get_num_seeds(self):
         return self.state[2]
     
-    
     def get_seed_type(self):
         return self.state[3]
     
