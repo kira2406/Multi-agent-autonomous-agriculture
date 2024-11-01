@@ -1,5 +1,6 @@
 import random
 from gymnasium import spaces
+from constants import CropTypes
 
 class SeederAgent:
     def __init__(self, pos):
@@ -10,7 +11,7 @@ class SeederAgent:
         self.facing = 2 # 0 - Up, 1 - Right, 2 - Down, 3 - Left
         self.holding_seeds = False
         self.seeds = 0
-        self.seed_type = 0 # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
+        self.seed_type = CropTypes.EMPTY # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
         self.capacity = 4
 
     def rotate_clock(self):

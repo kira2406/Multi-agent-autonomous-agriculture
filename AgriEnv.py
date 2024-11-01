@@ -7,6 +7,7 @@ from Agents.SeederAgent import SeederAgent
 from Agents.WaterAgent import WaterAgent
 from Agents.HarvesterAgent import HarvesterAgent
 from pettingzoo.utils import ParallelEnv
+from constants import CropStages, CropTypes, CropGrowthRates, CropInfo
 
 
 # Screen dimensions
@@ -193,22 +194,19 @@ class AgriEnv(ParallelEnv):
     def initialize_plots(self):
         """ Initialize the plot grids to initial state"""
         
-        self.plot_states = {}
-        for plot_grid in self.plot_grids:
-            # self.plot_states[tuple([plot_grid[1],plot_grid[0]])] = {
-            #     "planted": False,
-            #     "crop_type": 0,
-            #     "crop_state": "",
-            #     "days": 0,
-            #     "disease": False
-            # }
-            self.plot_states[tuple([plot_grid[1],plot_grid[0]])] = {
-                "planted": True,
-                "crop_type": 2,
-                "crop_state": "harvest",
-                "days": 25,
-                "disease": False
-            }
+        self.plot_states = []
+        self.plot_dict = {}
+        for index, plot_grid in enumerate(self.plot_grids):
+            self.plot_dict[tuple([plot_grid[1],plot_grid[0]])] = index
+            self.plot_states.append([
+                CropStages.NOT_PLANTED, # indicates the crop state
+                CropTypes.EMPTY,
+                0.0, # indicates water percentage
+                0.0, # indicates growth percentage
+                0.0, # indicates disease percentage
+                0,    # days since water percentage is 0
+                0     # yield value
+                ])
 
     def is_plot_grid(self, position):
         """ Checks if the given grid cell is a plot grid or not """
@@ -276,15 +274,15 @@ class AgriEnv(ParallelEnv):
         facing_cell = self.get_facing_cell(self.seeder_agent)
 
         if self.is_seed_station_1(facing_cell):
-            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=1)
+            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=CropTypes.WHEAT)
             return True
         
         if self.is_seed_station_2(facing_cell):
-            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=2)
+            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=CropTypes.RICE)
             return True
         
         if self.is_seed_station_3(facing_cell):
-            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=3)
+            self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=CropTypes.CORN)
             return True
 
         return False
@@ -295,14 +293,14 @@ class AgriEnv(ParallelEnv):
             return False
         facing_cell = self.get_facing_cell(self.seeder_agent)
 
-        if self.is_seed_station_1(facing_cell) and self.seeder_agent.seed_type == 1:
+        if self.is_seed_station_1(facing_cell) and self.seeder_agent.seed_type == CropTypes.WHEAT:
             self.seeder_agent.clear_seeds()
             return True
-        elif self.is_seed_station_2(facing_cell) and self.seeder_agent.seed_type == 2:
+        elif self.is_seed_station_2(facing_cell) and self.seeder_agent.seed_type == CropTypes.RICE:
             self.seeder_agent.clear_seeds()
             return True
         
-        elif self.is_seed_station_3(facing_cell) and self.seeder_agent.seed_type == 3:
+        elif self.is_seed_station_3(facing_cell) and self.seeder_agent.seed_type == CropTypes.CORN:
             self.seeder_agent.clear_seeds()
             return True
 
@@ -310,32 +308,46 @@ class AgriEnv(ParallelEnv):
     
     def grow_plot_grids(self):
         """ Function to update the state of crops in plot grids after every step """
-        for plot_grid in self.plot_grids:
-            plot_grid_key = tuple([plot_grid[1],plot_grid[0]])
-            if self.plot_states[plot_grid_key]['planted']:
-                plant_days = self.plot_states[plot_grid_key]['days']
-                print("plant_days", plant_days)
-                if plant_days == 5:
-                    self.plot_states[plot_grid_key]['crop_state'] = "sapling"
-                elif plant_days == 25:
-                    self.plot_states[plot_grid_key]['crop_state'] = "harvest"
-                elif plant_days == 35:
-                    self.plot_states[plot_grid_key]['crop_state'] = "dried"
-                elif plant_days == 40:
-                    self.plot_states[plot_grid_key]['crop_state'] = "dead"
-                self.plot_states[plot_grid_key]['days'] = plant_days + 1
+        for plot_id in range(len(self.plot_states)):
+            if self.plot_states[plot_id] != CropStages.NOT_PLANTED:
+                crop_state, crop_type, water_level, growth_level, disease_level, days_wo_water, yield_value = self.plot_states[plot_id]
+                
+                # grow the plant
+                if growth_level < 1.5:
+                    growth_level += CropInfo.get_growth_rate(crop_type)
+
+                # set crop state after growing
+                if growth_level >= 1.5:
+                    crop_state = CropStages.DIED
+                elif growth_level >= 1.2:
+                    crop_state = CropStages.DRIED
+                elif growth_level >= 1.0:
+                    crop_state = CropStages.HARVEST
+
+                if crop_state == CropStages.HARVEST:
+                    yield_value = 1
+                elif crop_state == CropStages.DRIED:
+                    yield_value = 0.5
+                elif crop_state == CropStages.DIED:
+                    yield_value = 0
+                elif crop_state == CropStages.GROWING:
+                    yield_value = 0
+
+                self.plot_states[plot_id] = [crop_state, crop_type, water_level, growth_level, disease_level, days_wo_water, yield_value]
+
+                
     
     def plant_seeds(self):
         """ Function to plant seeds into the plot grids based on the plot which the agent is facing """
         
         facing_cell = tuple(self.get_facing_cell(self.seeder_agent))
-
-        if self.is_plot_grid(facing_cell) and not self.plot_states[facing_cell]['planted']:
-            self.plot_states[facing_cell]['planted'] = True
-            self.plot_states[facing_cell]['crop_state'] = "planted"
-            self.plot_states[facing_cell]['crop_type'] = self.seeder_agent.seed_type
-            self.seeder_agent.reduce_seeds()
-            return True
+        if self.is_plot_grid(facing_cell):
+            plot_id = self.plot_dict[facing_cell]
+            if self.plot_states[plot_id][0] == CropStages.NOT_PLANTED:
+                self.plot_states[plot_id][0] = CropStages.GROWING
+                self.plot_states[plot_id][1] = self.seeder_agent.seed_type
+                self.seeder_agent.reduce_seeds()
+                return True
         return False
     
     def harvest_crops(self):
@@ -343,26 +355,19 @@ class AgriEnv(ParallelEnv):
         
         facing_cell = tuple(self.get_facing_cell(self.harvester_agent))
 
-        if not self.harvester_agent.holding_crops and self.is_plot_grid(facing_cell) and self.plot_states[facing_cell]['planted']:
-            
-            # Moving the crops to the harvester
-            self.harvester_agent.holding_crops = True
-            self.harvester_agent.crop_type = self.plot_states[facing_cell]['crop_type']
-            if self.plot_states[facing_cell]['crop_type'] == 1:
-                self.harvester_agent.crop_units = 5
-            elif self.plot_states[facing_cell]['crop_type'] == 2:
-                self.harvester_agent.crop_units =  10
-            elif self.plot_states[facing_cell]['crop_type'] == 3:
-                self.harvester_agent.crop_units =  15
-            self.harvester_agent.crop_state = self.plot_states[facing_cell]['crop_state']
+        if not self.harvester_agent.holding_crops and self.is_plot_grid(facing_cell):
+            plot_id = self.plot_dict[facing_cell]
 
-            # Clear the plot
-            self.plot_states[facing_cell]['crop_type'] = 0
-            self.plot_states[facing_cell]['crop_state'] = ""
-            self.plot_states[facing_cell]['planted'] = False
-            self.plot_states[facing_cell]['days'] = 0
-            self.plot_states[facing_cell]['disease'] = False
-            return True
+            if self.plot_states[plot_id][0] != CropStages.NOT_PLANTED:
+            
+                # Moving the crops to the harvester
+                self.harvester_agent.holding_crops = True
+                self.harvester_agent.crop_type = self.plot_states[plot_id][1]
+                self.harvester_agent.yield_value = self.plot_states[plot_id][6]
+
+                # Clear the plot
+                self.plot_states[plot_id] = [0, 0, 0.0, 0.0, 0.0, 0, 0]
+                return True
         return False
 
     def drop_crops(self):
@@ -372,24 +377,16 @@ class AgriEnv(ParallelEnv):
 
         if self.harvester_agent.holding_crops:
             if self.is_market(facing_cell):
-                crop_rates = [10, 20, 30]
-                crop_value = 0
-                if self.harvester_agent.crop_state == "harvest":
-                    crop_value = 1
-                elif self.harvester_agent.crop_state == "dried":
-                    crop_value = 0.7
-                elif self.harvester_agent.crop_state == "sapling":
-                    crop_value = 0.2
+                market_value = [20, 40, 60]
 
-                # Calculate game score by multiplying crop_units*crop_rates*crop_value
-                print(f"Market: Units = {self.harvester_agent.crop_units}, crop_rates = {crop_rates[self.harvester_agent.crop_type-1]},crop_value = {crop_value}")
-                self.game_score += self.harvester_agent.crop_units*crop_rates[self.harvester_agent.crop_type-1]*crop_value
+                # Calculate game score by multiplying market_value*yield value
+                print(f"Market: value={market_value[self.harvester_agent.crop_type-1]} yield_value:{self.harvester_agent.yield_value}")
+                self.game_score += self.harvester_agent.yield_value*market_value[self.harvester_agent.crop_type-1]
 
                 # Clear the harvester agent
                 self.harvester_agent.holding_crops = False
-                self.harvester_agent.crop_state = ""
-                self.harvester_agent.crop_units = 0
-                self.harvester_agent.crop_type = 0
+                self.harvester_agent.crop_type = CropTypes.EMPTY
+                self.harvester_agent.yield_value = 0
 
             return True
         return False

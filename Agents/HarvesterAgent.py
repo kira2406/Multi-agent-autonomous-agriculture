@@ -1,5 +1,6 @@
 import random
 from gymnasium import spaces
+from constants import CropTypes
 
 class HarvesterAgent:
     def __init__(self, pos):
@@ -10,8 +11,9 @@ class HarvesterAgent:
         self.facing = 2 # 0 - Up, 1 - Right, 2 - Down, 3 - Left
         self.holding_crops = False
         self.crop_units = 0
-        self.crop_type = 0 # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
-        self.crop_state = ""
+        self.crop_type = CropTypes.EMPTY # 0 - None, 1 - Type 1, 2 - Type 2, 3 - Type 3
+        self.yield_value = 0
+        self.state = []
 
     def rotate_clock(self):
         self.facing = (self.facing+1)%4
