@@ -105,6 +105,7 @@ class AgriEnv(ParallelEnv):
 
         # Place two groups of 2x6 plots
         self.plot_grids = [[3, 1],[4,1],[3,2],[4,2],[3,3],[4,3], [3, 5],[4,5],[3,6],[4,6],[3,7],[4,7]]
+        self.plot_grids_indices = [28, 29, 30, 32, 33, 34, 37, 38, 39, 41, 42, 43]
         for plot_grid in self.plot_grids:  # Rows 2 and 3
             self.grid[plot_grid[0]][plot_grid[1]] = 'plot'
 
@@ -228,8 +229,8 @@ class AgriEnv(ParallelEnv):
         
         self.plot_states = []
         self.plot_dict = {}
-        for index, plot_grid in enumerate(self.plot_grids):
-            self.plot_dict[tuple([plot_grid[1],plot_grid[0]])] = index
+        for index, plot_index in enumerate(self.plot_grids_indices):
+            self.plot_dict[plot_index] = index
             self.plot_states.append([
                 CropStages.NOT_PLANTED, # indicates the crop state
                 CropTypes.EMPTY,
@@ -290,53 +291,26 @@ class AgriEnv(ParallelEnv):
         
         return False
 
-
-        if direction == "move_up":
-            next_pos = curr_grid-self.num_columns
-            if self.is_within_bounds(next_pos):
-                agent.update_position(next_pos)
-                agent.update_facing(0)
-                return True
-        elif direction == "move_down":
-            next_pos = curr_grid+self.num_columns
-            if self.is_within_bounds(next_pos):
-                agent.update_position(next_pos)
-                agent.update_facing(2)
-                return True
-        elif direction == "move_left":
-            next_pos = curr_grid - 1
-            if self.is_within_bounds(next_pos):
-                agent.update_position(next_pos)
-                agent.update_facing(3)
-                return True
-        elif direction == "move_right":
-            next_pos = curr_grid + 1
-            if self.is_within_bounds(next_pos):
-                agent.update_position(next_pos)
-                agent.update_facing(1)
-                return True
-        return False
-
     
     def get_facing_cell(self, agent):
         """ Get the cell the agent is currently facing"""
-        position = agent.pos
-        pos_x, pos_y = position[0], position[1]
-        if agent.facing == 0:
-            return [pos_x, pos_y-1]
-        elif agent.facing == 1:
-            return [pos_x+1, pos_y]
-        elif agent.facing == 2:
-            return [pos_x, pos_y+1]
-        elif agent.facing == 3:
-            return [pos_x-1, pos_y]
+        curr_grid = agent.get_position()
+        print(curr_grid)
+        if agent.get_facing() == 0:
+            return curr_grid-self.num_columns
+        elif agent.get_facing() == 1:
+            return curr_grid+1
+        elif agent.get_facing() == 2:
+            return curr_grid+self.num_columns
+        elif agent.get_facing() == 3:
+            return curr_grid-1
         
     def pickup_seeds(self):
         """ Pickup seeds from the seed stations if the agent is facing the seed station """
-        if self.seeder_agent.holding_seeds:
+        if self.seeder_agent.is_holding_seeds():
             return False
         facing_cell = self.get_facing_cell(self.seeder_agent)
-
+        print("facing cell", facing_cell)
         if self.is_seed_station_1(facing_cell):
             self.seeder_agent.collect_seeds(seed_quantity=5,seed_type=CropTypes.WHEAT)
             return True
@@ -353,18 +327,18 @@ class AgriEnv(ParallelEnv):
     
     def drop_seeds(self):
         """ Drop seeds back into the seed station """
-        if not self.seeder_agent.holding_seeds:
+        if not self.seeder_agent.is_holding_seeds():
             return False
         facing_cell = self.get_facing_cell(self.seeder_agent)
-
-        if self.is_seed_station_1(facing_cell) and self.seeder_agent.seed_type == CropTypes.WHEAT:
+        print("facing cell", facing_cell)
+        if self.is_seed_station_1(facing_cell) and self.seeder_agent.get_seed_type() == CropTypes.WHEAT:
             self.seeder_agent.clear_seeds()
             return True
-        elif self.is_seed_station_2(facing_cell) and self.seeder_agent.seed_type == CropTypes.RICE:
+        elif self.is_seed_station_2(facing_cell) and self.seeder_agent.get_seed_type() == CropTypes.RICE:
             self.seeder_agent.clear_seeds()
             return True
         
-        elif self.is_seed_station_3(facing_cell) and self.seeder_agent.seed_type == CropTypes.CORN:
+        elif self.is_seed_station_3(facing_cell) and self.seeder_agent.get_seed_type() == CropTypes.CORN:
             self.seeder_agent.clear_seeds()
             return True
 
@@ -404,12 +378,13 @@ class AgriEnv(ParallelEnv):
     def plant_seeds(self):
         """ Function to plant seeds into the plot grids based on the plot which the agent is facing """
         
-        facing_cell = tuple(self.get_facing_cell(self.seeder_agent))
+        facing_cell = self.get_facing_cell(self.seeder_agent)
+        print("facing_cell", facing_cell)
         if self.is_plot_grid(facing_cell):
             plot_id = self.plot_dict[facing_cell]
             if self.plot_states[plot_id][0] == CropStages.NOT_PLANTED:
                 self.plot_states[plot_id][0] = CropStages.GROWING
-                self.plot_states[plot_id][1] = self.seeder_agent.seed_type
+                self.plot_states[plot_id][1] = self.seeder_agent.get_seed_type()
                 self.seeder_agent.reduce_seeds()
                 return True
         return False

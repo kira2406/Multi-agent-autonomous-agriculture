@@ -26,6 +26,16 @@ class SeederAgent:
     def get_position(self):
         return self.state[0]
     
+    def get_facing(self):
+        return self.state[1]
+    
+    def get_num_seeds(self):
+        return self.state[2]
+    
+    
+    def get_seed_type(self):
+        return self.state[3]
+    
     def update_position(self, new_pos):
         self.state[0] = new_pos
 
@@ -33,27 +43,28 @@ class SeederAgent:
         self.state[1] = direc
 
     def rotate_clock(self):
-        self.facing = (self.facing+1)%4
+        self.state[1] = (self.state[1]+1)%4
 
     def rotate_anticlock(self):
-        self.facing = (self.facing-1)%4
+        self.state[1] = (self.state[1]-1)%4
 
     def reduce_seeds(self):
-        if self.seeds == 1:
+        if self.state[2] == 1:
             self.clear_seeds()
         else:
-            self.seeds -= 1
+            self.state[2] -= 1
 
     def clear_seeds(self):
-        self.holding_seeds = False
-        self.seed_type = 0
-        self.seeds = 0
+        self.state[2] = 0
+        self.state[3] = 0
+
+    def is_holding_seeds(self):
+        return self.state[2] > 0
 
 
     def collect_seeds(self, seed_type, seed_quantity):
-        self.seed_type = seed_type
-        self.seeds = min(seed_quantity, self.capacity)
-        self.holding_seeds = True
+        self.state[2] = seed_quantity
+        self.state[3] = seed_type
 
     def display_state(self):
         print("====Seeder Agent====")
