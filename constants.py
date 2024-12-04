@@ -16,16 +16,28 @@ class CropGrowthRates:
     RICE = 0.025
     CORN = 0.02
 
+class Weather:
+    DRYNESS_RATE = 0.05
+
 class CropInfo:
     growth_rates = {
         CropTypes.WHEAT: 0.04,
         CropTypes.RICE: 0.025,
         CropTypes.CORN: 0.02
     }
+    dry_rate = {
+        CropTypes.WHEAT: 10,
+        CropTypes.RICE: 10,
+        CropTypes.CORN: 10,
+    }
     
     @staticmethod
     def get_growth_rate(crop_type):
         return CropInfo.growth_rates.get(crop_type, 0)
+    
+    @staticmethod
+    def get_max_dry_days(crop_type):
+        return CropInfo.dry_rate.get(crop_type, 0)
     
 class GridElements:
     GRASS = 0
@@ -40,3 +52,6 @@ class GridElements:
     HARVESTERAGENT = 9
     MARKET = 10
     GARBAGE = 11
+    STATION1 = 12
+    STATION2 = 13
+    STATION3 = 14
