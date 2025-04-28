@@ -222,3 +222,18 @@ We defined separate reward functions for each agent according to their respectiv
   - Variations attributed to agents' lack of awareness of other agents' positions, leading to environment uncertainty.
 
   ![](media/3agents_8x7_eval.png)
+
+
+## References
+
+## References
+
+1. [PettingZoo - Multi-agent RL environments](https://github.com/Farama-Foundation/PettingZoo)
+2. [Gymnasium - Modernized OpenAI Gym](https://gymnasium.farama.org/index.html)
+3. [Pygame - Python Game Development](https://www.pygame.org/docs/)
+4. [Tqdm - Progress Bars for Python](https://tqdm.github.io/)
+5. [New Environments and Algorithms for Multi-agent RL](https://agents.inf.ed.ac.uk/blog/new-environments-algorithm-multiagent-rl/)
+6. [Robotic Warehouse Simulation](https://github.com/semitable/robotic-warehouse)
+7. [PyTorch Deep Reinforcement Learning Examples](https://github.com/ChenglongChen/pytorch-DRL)
+8. [OpenAI Multiagent Particle Envs](https://github.com/openai/multiagent-particle-envs)
+9. [A Deep Reinforcement Learning-based Multi-agent Area Coverage Control for Smart Agriculture - ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S2468013320300392)
